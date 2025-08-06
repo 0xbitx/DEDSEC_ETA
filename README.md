@@ -18,8 +18,6 @@ Built for ethical hackers, cybersecurity learners, and security awareness teams,
 
   Attachment scanning for suspicious or potentially dangerous file types like .exe, .js, .docm, or password-protected archives
 
-  VirusTotal API integration for domain reputation scoring
-
   Email header analysis (SPF, DKIM, DMARC) to detect spoofed senders or misconfigured domains
 
   Tabulated CLI output for clean, human-readable summaries
@@ -38,8 +36,6 @@ Built for ethical hackers, cybersecurity learners, and security awareness teams,
  * Detects spoofed brand names and scare tactics
 
  * Highlights phishing-related keywords
-
- * Integrates with VirusTotal for domain reputation checks
 
  * Detects typosquatting using fuzzy domain matching
 
@@ -69,7 +65,6 @@ SCORE:        8
  Content Flags      Urgency or scare tactic detected
                     Sensitive info requested
  Domain             bit.ly
- VirusTotal         Malicious: 5
  Typosquat          Looks like: paypal.com
  Tunnel             Port Forwarding/Tunnel
 ────────────────────────────────────────────────────────────────────────────

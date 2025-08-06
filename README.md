@@ -1,6 +1,6 @@
 
 <p align="center">
-<img src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExdGtjeHZtZDk0OGt1aHZ4eGhuZm41anVrYnRzbzI1cWd3NThjazY2ZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/d4966VVu321IfzpMAz/giphy.gif", width="300", height="300">
+<img src="https://github.com/user-attachments/assets/1dccf312-6838-455f-84fd-a2a76b7d11f1", width="300", height="300">
 </p>
 
 <h1 align="center">DEDSEC_ETA</h1> 

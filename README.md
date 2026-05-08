@@ -5,7 +5,7 @@
 
 <h1 align="center">DEDSEC_ETA</h1> 
 
-<h4 align="center">DEDSEC_ETA is a tool that detects phishing attempts, analyzes suspicious emails, and provides real-time threat detection.</h4>
+<h4 align="center">DEDSEC_ETA is a tool that detects phishing attempts, analyzes suspicious emails.</h4>
 
 ### DESCRIPTION
 DEDSEC_ETA (Email Threat Analyzer) is a Linux-based tool designed to inspect and analyze email content pulled directly from Gmail inboxes. It helps identify phishing attacks, spam, malicious attachments, spoofed domains, shortened or tunneled URLs, and other suspicious elements.
@@ -21,8 +21,6 @@ Built for ethical hackers, cybersecurity learners, and security awareness teams,
   Email header analysis (SPF, DKIM, DMARC) to detect spoofed senders or misconfigured domains
 
   Tabulated CLI output for clean, human-readable summaries
-
-  Real-time monitoring using IMAP IDLE for on-the-fly detection of threats as emails arrive
 
 ### FEATURES
  * Detects suspicious URLs and domain redirects
@@ -40,8 +38,6 @@ Built for ethical hackers, cybersecurity learners, and security awareness teams,
  * Detects typosquatting using fuzzy domain matching
 
  * Flags port-forwarding and tunneling links (e.g. ngrok, Cloudflare)
-
- * Supports real-time scanning using IMAP IDLE
 
  * Cleans spam mailbox automatically
 

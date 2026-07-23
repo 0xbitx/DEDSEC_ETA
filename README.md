@@ -268,30 +268,6 @@ A credential harvesting email impersonating Gmail. SPF, DKIM, DMARC fails, a Tun
 
 ---
 
----
-
-### 3. Malicious Attachment Detected by VirusTotal
-
-An invoice themed email carries a password protected ZIP containing an executable. VirusTotal flags the payload across 15 vendors.
-
-```
-
-```
-
----
-
-### 4. Phishing Link via Shorten URL
-
-An attacker hosts a phishing page behind an cloudflare tunnel, shorten and distributes the link via email. The shorten service is detected and flagged.
-
-```
-
-```
-
----
-
-
-
 ## Technology Stack
 
 | Package | Purpose |

@@ -11,59 +11,52 @@
 
 DEDSEC ETA is an automated email threat detection tool built for security operations workflows. It connects directly to a Gmail inbox via IMAP, ingests incoming messages, and applies a layered set of detection rules to surface phishing attempts, business email compromise indicators, and malicious payloads. The tool is designed to demonstrate practical competency in threat analysis, automation, and detection engineering — core competencies expected of a Security Operations Center (SOC) Analyst.
 
-Every email is decomposed and inspected across nine independent detection layers. Results are scored, categorized by risk level, mapped to MITRE ATT&CK technique IDs, and presented in a structured table format suitable for triage or incident response handoff. When report generation is enabled, each flagged email also yields a professional PDF report, a machine readable JSON export, and IOC extracts in STIX 2.1, MISP, and CSV formats.
+Every email is decomposed and inspected across nine independent detection layers. Results are scored, categorized by risk level, mapped to MITRE ATT&CK technique IDs, and presented in a structured table format suitable for triage or incident response handoff. Report generation produces a professional PDF, a machine readable JSON export, and IOC extracts in STIX 2.1, MISP, and CSV formats for every flagged email.
 
 ---
 
 ## Detection Layers
 
 ### Authentication Header Analysis (SPF / DKIM / DMARC)
-The `Received-SPF` and `Authentication-Results` headers are parsed to determine whether the sending server passed or failed SPF, DKIM, and DMARC checks. A failed SPF check is a high confidence indicator that the sender address was spoofed. DKIM and DMARC failures indicate that either the message integrity could not be verified or the sending domain's policy was violated. Results are displayed with color coded pass or fail badges and contribute significantly to the risk score.
+The `Received-SPF` and `Authentication-Results` headers are parsed to determine whether the sending server passed or failed SPF, DKIM, and DMARC checks. A failed SPF check is a high confidence indicator that the sender address was spoofed. DKIM and DMARC failures indicate that either the message integrity could not be verified or the sending domain's policy was violated.
 
 ### Sender Spoofing Detection
-Three impersonation vectors commonly exploited in business email compromise attacks are checked:
-
-* **Reply-To Mismatch**: The `Reply-To` header domain is compared against the `From` domain. Attackers often set a legitimate looking `From` address while routing replies to a different attacker controlled inbox.
-* **Return-Path Mismatch**: The envelope `Return-Path` domain is compared against the `From` domain. A mismatch indicates that the visible sender differs from the actual mail origin.
-* **Display Name Spoofing**: The display name portion of the `From` header is checked against a list of trusted brand names. If the display name contains a known brand but the actual email domain does not belong to that brand, it is flagged as impersonation.
+Three impersonation vectors commonly exploited in business email compromise attacks are checked. **Reply-To mismatch** compares the `Reply-To` header domain against the `From` domain — attackers often set a legitimate looking `From` address while routing replies to an attacker controlled inbox. **Return-Path mismatch** compares the envelope `Return-Path` against the visible `From` domain. **Display name spoofing** checks whether the display name contains a known brand name while the actual email domain does not belong to that brand.
 
 ### Linguistic Analysis
-The tool tokenizes email body text and applies a combination of natural language processing techniques to identify anomalies common in phishing campaigns. A curated corpus of legitimate English vocabulary is used to flag misspelled or deliberately obfuscated words. The system also scans for urgency triggers, scare phrasing, requests for sensitive credentials, and impersonation of trusted brands such as PayPal, Microsoft, Apple, and financial institutions. Generic greetings that lack recipient personalization are similarly flagged, as these are strong indicators of mass phishing operations.
+The tool tokenizes email body text using NLTK and applies natural language processing techniques to identify anomalies. A curated corpus of legitimate English vocabulary flags misspelled or deliberately obfuscated words. The system also scans for urgency triggers, scare phrasing, requests for sensitive credentials, and impersonation of trusted brands such as PayPal, Microsoft, Apple, and financial institutions. Generic greetings that lack recipient personalization are flagged as mass phishing indicators.
 
 ### URL and Domain Inspection
-All hyperlinks embedded in HTML content and all plaintext URLs extracted from the message body are collected and normalized. Each domain is inspected against several threat feeds built directly into the tool:
+All hyperlinks embedded in HTML and all plaintext URLs extracted from the message body are collected and normalized. Each domain is inspected against several threat feeds:
 
-* **URL Shortener Detection**: The tool maintains a reference list of over 40 known URL shortening services. Shortened links are flagged because they obscure the true destination and are heavily abused in phishing campaigns.
-* **Tunneling and Port Forwarding Services**: Domains associated with services such as ngrok, Cloudflare Tunnel, LocalTunnel, and similar platforms are flagged. These services allow attackers to expose locally hosted phishing pages to the public internet behind ephemeral domains.
-* **Typosquatting Detection**: Each extracted domain is compared against a set of high value target brands using fuzzy string matching. Domains that closely resemble legitimate services but contain minor character variations are identified as potential typosquatting attempts.
+* **URL Shortener Detection** — reference list of over 40 known shortening services flagged because they obscure the true destination
+* **Tunneling and Port Forwarding Services** — domains associated with ngrok, Cloudflare Tunnel, LocalTunnel, and similar platforms flagged as attacker infrastructure
+* **Typosquatting Detection** — fuzzy string matching against trusted brand domains to identify lookalike domains
 
 ### Attachment Inspection and VirusTotal Lookup
-File attachments are examined for properties that commonly indicate malicious intent. The tool cross references file extensions against known dangerous types: direct executables, script files, macro enabled Office documents, and compressed archives. Double extension patterns designed to deceive users about file type are also detected.
-
-Beyond extension based checks, every attachment payload is hashed using SHA256 and MD5. The SHA256 hash is queried against the VirusTotal API to retrieve multi vendor detection ratios. Results are cached locally to avoid redundant API calls on repeat attachments. When one or more vendors flag a file as malicious, the detection count is surfaced in the terminal output and contributes weight to the risk score.
+File extensions are checked against known dangerous types: direct executables, script files, macro enabled Office documents, and compressed archives. Double extension patterns designed to deceive users are also detected. Every attachment payload is hashed using SHA256 and MD5, and the hash is queried against the VirusTotal API for multi vendor detection ratios. Results are cached locally to avoid redundant API calls.
 
 ### WHOIS Domain Age Check
-The sender's domain is queried via WHOIS to determine its registration date. Domains registered less than 30 days ago are flagged as high risk. Newly registered domains are overwhelmingly associated with phishing campaigns and disposable attacker infrastructure. The domain age and creation date are displayed in the terminal output and highlighted prominently in the PDF report.
+The sender's domain is queried via WHOIS to determine its registration date. Domains registered less than 30 days ago are flagged as high risk — newly registered domains are overwhelmingly associated with phishing campaigns and disposable attacker infrastructure.
 
 ### MITRE ATT&CK Mapping
-Every detection signal is tagged with the corresponding MITRE ATT&CK technique ID. This bridges the gap between raw detection output and the threat intelligence framework used by enterprise SOCs. Mapped techniques include T1566 (Phishing), T1566.001 (Spearphishing Attachment), T1566.002 (Spearphishing Link), T1557 (Adversary-in-the-Middle), T1027.011 (Obfuscated Files: URL Shortening), T1090.001 (Proxy: Internal Proxy), T1583.001 (Acquire Infrastructure: Domains), T1204.002 (User Execution: Malicious File), and T1027.002 (Obfuscated Files: Archive).
+Every detection signal is tagged with the corresponding MITRE ATT&CK technique ID: T1566 (Phishing), T1566.001 (Spearphishing Attachment), T1566.002 (Spearphishing Link), T1557 (Adversary-in-the-Middle), T1027.011 (Obfuscated Files: URL Shortening), T1090.001 (Proxy: Internal Proxy), T1583.001 (Acquire Infrastructure: Domains), T1204.002 (User Execution: Malicious File), and T1027.002 (Obfuscated Files: Archive).
 
 ### Risk Scoring
-Each detection layer contributes weighted points to a composite risk score. High confidence indicators such as SPF failures, tunneling domains, VirusTotal detections, and sender spoofing carry the most weight. Supplementary signals like keyword matches, content flags, and misspelling volume contribute incrementally. The final score maps to a three tier classification: **Safe**, **Suspicious**, or **Malicious**.
+Each detection layer contributes weighted points to a composite risk score. High confidence indicators such as SPF failures, tunneling domains, VirusTotal detections, and sender spoofing carry the most weight. The score maps to a three tier classification: **Safe**, **Suspicious**, or **Malicious**.
 
 ### Trusted Sender Whitelisting
-A configurable whitelist of sender addresses and trusted domains prevents false positives from known legitimate sources. Emails matching entries in this list are silently skipped during scanning, reducing noise and allowing the analyst to focus on genuinely unknown or suspicious senders.
+A configurable whitelist of sender addresses and trusted domains prevents false positives from known legitimate sources. Emails matching entries in this list are silently skipped during scanning.
 
 ---
 
 ## Operational Workflow
 
-1.  The analyst configures a Gmail account with an application specific password. Credentials are encrypted at rest using an XOR cipher with Base64 encoding and stored in a local configuration file.
-2.  A VirusTotal API key can optionally be placed in a `virustotal.api` file to enable hash based attachment lookups. The tool functions fully without it.
-3.  On execution, the tool presents a command line interface with scan options: target a specific sender, sweep the entire inbox, generate reports with IOC exports, or purge the spam folder.
-4.  Emails are fetched in configurable batches and processed concurrently using a thread pool for efficiency.
-5.  Each analyzed email produces a structured terminal report with risk classification, score, authentication results, keywords, URLs, attachment flags, VirusTotal detections, domain age, and MITRE ATT&CK tags.
-6.  When report generation is enabled, each flagged email yields a PDF report, a JSON export, and IOC extracts in STIX 2.1, MISP, and CSV formats saved to a `reports/` directory. The scan concludes with a summary dashboard showing aggregate statistics.
+1.  Configure a Gmail account with an application specific password. Credentials are encrypted at rest using an XOR cipher with Base64 encoding.
+2.  Optionally place a VirusTotal API key in `virustotal.api` to enable hash based attachment lookups. The tool functions fully without it.
+3.  Select a scan mode: target a specific sender, sweep the entire inbox, real-time monitor, or purge spam.
+4.  Emails are fetched in configurable batches and processed concurrently via thread pool.
+5.  Each analyzed email produces a structured terminal report. Reports (PDF + JSON + STIX + MISP + CSV) are generated automatically for every flagged email. The scan concludes with a summary dashboard.
 
 ---
 
@@ -78,7 +71,7 @@ SCORE:        14
 ────────────────────────────────────────────────────────────
  Type               Value
 ────────────────────────────────────────────────────────────
- Auth Headers       SPF: fail, DKIM: fail, DMARC: pass
+ Auth Headers       SPF: Fail | DKIM: Fail | DMARC: Pass
  Keywords           verify, account, urgent
  URLs               http://bit.ly/fake-login
  Interesting Words  acount, verifcation, updat
@@ -86,11 +79,10 @@ SCORE:        14
                     VT Detection: invoice.exe flagged by 12/70 vendors
  VirusTotal         invoice.exe: 12 malicious / 2 suspicious / 70 total
  Domain Age         phishingsite.com: 3 days old (created 2026-07-20)
- MITRE ATT&CK       SPF Fail: T1566.001 (Spearphishing Attachment)
-                    Shortened URL: T1027.011 (Obfuscated Files)
-                    Executable Attachment: T1204.002 (Malicious File)
-                    VT Detection: T1204.002 (Malicious File)
-                    Domain Age: T1583.001 (Acquire Infrastructure)
+ MITRE ATT&CK       T1566.001 - Spearphishing Attachment
+                    T1027.011 - Obfuscated Files: URL Shortening
+                    T1204.002 - User Execution: Malicious File
+                    T1583.001 - Acquire Infrastructure: Domains
  Content Flags      Urgency or scare tactic detected
                     Sensitive info requested
                     Display name spoofing: 'PayPal Support' but domain is phishingsite.com
@@ -98,57 +90,223 @@ SCORE:        14
 ────────────────────────────────────────────────────────────
  Domain            Typosquat         Tunnel   Shorten
 ────────────────────────────────────────────────────────────
- [1] bit.ly        NOT               NOT      Yes
- [2] ngrok.io      NOT               Yes      NOT
+ [1] bit.ly        No                No       Yes
+ [2] ngrok.io      No                Yes      No
 ────────────────────────────────────────────────────────────
-```
-
-**Scan Summary (displayed after batch completion):**
-
-```
-==================================================
-           SCAN SUMMARY
---------------------------------------------------
-   Total scanned:           247
-   Flagged:                  31  (12.5%)
-     Malicious:               8
-     Suspicious:             23
-     Safe:                  184
-   Whitelisted (skipped):     0
---------------------------------------------------
-   Top flagged domains:
-     ngrok.io  (4)
-     bit.ly    (3)
-   Top keywords:
-     verify    (12)
-     urgent    (9)
---------------------------------------------------
-   Average risk score:       3.2
-   Reports generated:        31 PDF / 31 JSON / 31 IOC
-==================================================
 ```
 
 ---
 
 ## Reporting
 
-When report generation is enabled, DEDSEC ETA produces multiple artifacts for every flagged email, all saved to a `reports/` directory within the project root.
+Every scan produces multiple artifacts per flagged email, saved to `reports/`:
 
-**PDF Report.** A professionally formatted document with a dark header banner, color coded verdict block (green for Safe, amber for Suspicious, red for Malicious), full email metadata, and nine numbered analysis sections: Authentication Headers, Sender Spoofing Analysis, Content Analysis, URL and Domain Analysis, Attachment Analysis, VirusTotal Results, MITRE ATT&CK Mapping, and Scoring Methodology. The layout uses section headers, alternating row fills, PASS/FAIL status badges, and a domain intelligence table to produce a report ready for inclusion in an incident case file or for handoff to a senior analyst.
+| Format | File Pattern | Purpose |
+|---|---|---|
+| PDF | `email_report_*.pdf` | Incident case file attachment, analyst handoff |
+| JSON | `email_analysis_*.json` | SIEM/SOAR ingestion, custom dashboards |
+| STIX 2.1 | `iocs_*.stix.json` | Threat intel sharing with ISACs and other SOCs |
+| MISP | `iocs_*.misp.json` | Direct import into MISP instances |
+| CSV | `iocs_*.csv` | Splunk, ELK, or Excel ingestion |
 
-**JSON Export.** A machine readable export structured for ingestion into SIEM platforms, case management systems, or custom dashboards. The schema includes analysis metadata, verdict with numeric score, authentication results, spoofing indicators, detection results (keywords, URLs, misspellings, content flags, attachment warnings, domain analysis), attachment hashes and VirusTotal vendor statistics, domain age, and MITRE ATT&CK technique tags.
+The **Scan Summary** dashboard prints aggregate metrics after every batch scan:
 
-**IOC Exports.** Three threat intelligence sharing formats are generated for every email classified as Suspicious or Malicious:
-
-* **STIX 2.1** — A standards compliant bundle containing an identity object for the tool, an indicator object for the phishing email, and observed data SCOs for every extracted IP, domain, URL, and file hash.
-* **MISP** — A MISP compatible event JSON with typed attributes ready for import into a MISP instance.
-* **CSV** — A flat IOC table with `type`, `value`, and `context` columns suitable for Splunk, ELK, or Excel ingestion.
+```
+╭──────────────────────────┬──────────────────────────────────────╮
+│ SCAN SUMMARY             │                                      │
+├──────────────────────────┼──────────────────────────────────────┤
+│ Total scanned            │ 247                                  │
+│ Flagged                  │ 31  (12.5%)                          │
+│ Malicious                │ 8                                    │
+│ Suspicious               │ 23                                   │
+│ Safe                     │ 184                                  │
+│ Whitelisted (skipped)    │ 0                                    │
+├──────────────────────────┼──────────────────────────────────────┤
+│ Domain                   │ ngrok.io  (4)                        │
+│ Keyword                  │ verify  (12)                         │
+├──────────────────────────┼──────────────────────────────────────┤
+│ Average risk score       │ 3.2                                  │
+│ Reports generated        │ 31 PDF / 31 JSON / 31 IOC            │
+╰──────────────────────────┴──────────────────────────────────────╯
+```
 
 ---
 
+## Detection Gallery
+
+Real-world email analyses performed by DEDSEC ETA. Each entry shows the terminal output produced during automated triage, exactly as an analyst would see it during an investigation.
+
+---
+
+### 1. Legitimate Email (Safe)
+
+A Normal email from a known sender passes all authentication checks and triggers no detection layers.
+
+```
+╭────────────────────────────────────────────────────────────────────────╮
+│ ╭──────────┬───────────────────────────────────────╮                   │
+│ │ FROM:    │ niki@cloudns.net                      │                   │
+│ ├──────────┼───────────────────────────────────────┤                   │
+│ │ SUBJECT: │ How's your ClouDNS experience so far? │                   │
+│ ├──────────┼───────────────────────────────────────┤                   │
+│ │ RISK:    │ Safe                                  │                   │
+│ ├──────────┼───────────────────────────────────────┤                   │
+│ │ SCORE:   │ 1                                     │                   │
+│ ╰──────────┴───────────────────────────────────────╯                   │
+├────────────────────────────────────────────────────────────────────────┤
+│ ╭───────────────────┬────────────────────────────────────────────────╮ │
+│ │ Type              │ Value                                          │ │
+│ ├───────────────────┼────────────────────────────────────────────────┤ │
+│ │ Keywords          │ account                                        │ │
+│ ├───────────────────┼────────────────────────────────────────────────┤ │
+│ │ URLs              │ https://www.linkedin.com/company/cloud-dns-ltd │ │
+│ │                   │ https://www.facebook.com/cloudns/              │ │
+│ │                   │ https://twitter.com/ClouDNS                    │ │
+│ │                   │ https://www.youtube.com/c/CloudnsNet           │ │
+│ ├───────────────────┼────────────────────────────────────────────────┤ │
+│ │ Interesting Words │ cloudns, dns, iskar, rasheva, str              │ │
+│ ├───────────────────┼────────────────────────────────────────────────┤ │
+│ │ Auth Headers      │ SPF: Pass | DKIM: Pass | DMARC: Pass           │ │
+│ ├───────────────────┼────────────────────────────────────────────────┤ │
+│ │ Domain Age        │ 6073 days (created: 2009-12-06)                │ │
+│ ├───────────────────┼────────────────────────────────────────────────┤ │
+│ │ MITRE ATT&CK      │ T1566 - Phishing                               │ │
+│ ╰───────────────────┴────────────────────────────────────────────────╯ │
+├────────────────────────────────────────────────────────────────────────┤
+│ ╭──────────────────┬─────────────┬──────────┬───────────╮              │
+│ │ Domain           │ Typosquat   │ Tunnel   │ Shorten   │              │
+│ ├──────────────────┼─────────────┼──────────┼───────────┤              │
+│ │ [1] linkedin.com │ No          │ No       │ No        │              │
+│ ├──────────────────┼─────────────┼──────────┼───────────┤              │
+│ │ [2] facebook.com │ No          │ No       │ No        │              │
+│ ├──────────────────┼─────────────┼──────────┼───────────┤              │
+│ │ [3] twitter.com  │ No          │ No       │ No        │              │
+│ ├──────────────────┼─────────────┼──────────┼───────────┤              │
+│ │ [4] youtube.com  │ No          │ No       │ No        │              │
+│ ╰──────────────────┴─────────────┴──────────┴───────────╯              │
+╰────────────────────────────────────────────────────────────────────────╯
+
+```
+
+| Tool Output |
+|----------|
+| ![image-analysis](https://github.com/user-attachments/assets/89276838-8b6d-4719-9a97-fedcb17b3540) |
+
+| Report Output |
+|----------|
+| Report |
+| [email_report_niki_at_cloudns.net_20260724_030609.pdf](https://github.com/user-attachments/files/30319381/email_report_niki_at_cloudns.net_20260724_030609.pdf) |
+| Json Report |
+| [email_analysis_niki_at_cloudns.net_20260724_030609.json](https://github.com/user-attachments/files/30319383/email_analysis_niki_at_cloudns.net_20260724_030609.json) |
+
+---
+
+### 2. Phishing Attempt with SPF, DKIM, DMARC Fail via Tunnel URL (my own advanced spear phishing tool)
+
+A credential harvesting email impersonating Gmail. SPF, DKIM, DMARC fails, a Tunnel URL is detected, and urgency language triggers content flags.
+
+```
+╭───────────────────────────────────────────────────────────────────────╮
+│ ╭──────────┬────────────────────────────────────╮                     │
+│ │ FROM:    │ anonymous.service.mailer@gmail.com │                     │
+│ ├──────────┼────────────────────────────────────┤                     │
+│ │ SUBJECT: │ Security Alert                     │                     │
+│ ├──────────┼────────────────────────────────────┤                     │
+│ │ RISK:    │ Malicious                          │                     │
+│ ├──────────┼────────────────────────────────────┤                     │
+│ │ SCORE:   │ 7                                  │                     │
+│ ╰──────────┴────────────────────────────────────╯                     │
+├───────────────────────────────────────────────────────────────────────┤
+│ ╭───────────────────┬───────────────────────────────────────────────╮ │
+│ │ Type              │ Value                                         │ │
+│ ├───────────────────┼───────────────────────────────────────────────┤ │
+│ │ Keywords          │ reset, account                                │ │
+│ ├───────────────────┼───────────────────────────────────────────────┤ │
+│ │ URLs              │ https://myaccount.google.com/notifications    │ │
+│ │                   │ mix-solaris-istanbul-signal.trycloudflare.com │ │
+│ ├───────────────────┼───────────────────────────────────────────────┤ │
+│ │ Interesting Words │ didn, https, llc, usa                         │ │
+│ ├───────────────────┼───────────────────────────────────────────────┤ │
+│ │ Auth Headers      │ SPF: Unknown | DKIM: Unknown | DMARC: Unknown │ │
+│ ├───────────────────┼───────────────────────────────────────────────┤ │
+│ │ Domain Age        │ 11302 days (created: 1995-08-13)              │ │
+│ ├───────────────────┼───────────────────────────────────────────────┤ │
+│ │ Content Flags     │ Possible spoofed brand name                   │ │
+│ │                   │ Sensitive info requested                      │ │
+│ │                   │ Possible Phishing                             │ │
+│ ├───────────────────┼───────────────────────────────────────────────┤ │
+│ │ MITRE ATT&CK      │ T1566 - Phishing                              │ │
+│ │                   │ T1557 - Adversary-in-the-Middle               │ │
+│ │                   │ T1566 - Phishing                              │ │
+│ │                   │ T1090.001 - Proxy: Internal Proxy             │ │
+│ │                   │ T1566 - Phishing                              │ │
+│ ╰───────────────────┴───────────────────────────────────────────────╯ │
+├───────────────────────────────────────────────────────────────────────┤
+│ ╭───────────────────────┬─────────────┬──────────┬───────────╮        │
+│ │ Domain                │ Typosquat   │ Tunnel   │ Shorten   │        │
+│ ├───────────────────────┼─────────────┼──────────┼───────────┤        │
+│ │ [1] google.com        │ No          │ No       │ No        │        │
+│ ├───────────────────────┼─────────────┼──────────┼───────────┤        │
+│ │ [2] trycloudflare.com │ No          │ Yes      │ No        │        │
+│ ╰───────────────────────┴─────────────┴──────────┴───────────╯        │
+╰───────────────────────────────────────────────────────────────────────╯
+```
+| Spear Phishing Tool Output |
+|----------|
+| ![image-analysis](https://github.com/user-attachments/assets/68608280-cc38-4a6f-a016-915c2b0b08e2) |
+
+| Tool Output |
+|----------|
+| ![image-analysis](https://github.com/user-attachments/assets/929fa574-a0c7-4d98-985a-be3c8609618c) |
+
+| Report Output |
+|----------|
+| Report |
+| [email_report_anonymous.service.mailer_at_gmail.com_20260724_023403.pdf](https://github.com/user-attachments/files/30319230/email_report_anonymous.service.mailer_at_gmail.com_20260724_023403.pdf) |
+| Json Report |
+| [email_analysis_anonymous.service.mailer_at_gmail.com_20260724_023403.json](https://github.com/user-attachments/files/30319238/email_analysis_anonymous.service.mailer_at_gmail.com_20260724_023403.json) |
+
+---
+
+---
+
+### 3. Malicious Attachment Detected by VirusTotal
+
+An invoice themed email carries a password protected ZIP containing an executable. VirusTotal flags the payload across 15 vendors.
+
+```
+
+```
+
+---
+
+### 4. Phishing Link via Shorten URL
+
+An attacker hosts a phishing page behind an cloudflare tunnel, shorten and distributes the link via email. The shorten service is detected and flagged.
+
+```
+
+```
+
+---
+
+
+
 ## Technology Stack
 
-The tool is written in Python and leverages well established libraries for each analysis domain. `nltk` and `pyspellchecker` handle natural language processing and typo detection. `BeautifulSoup4` parses HTML email bodies for URL extraction. `tldextract` normalizes domain names for reliable matching. `tabulate` generates the structured terminal output tables. `fpdf` produces professional PDF reports. `python-whois` queries domain registration data for age verification. The `imaplib` and `smtplib` standard library modules manage Gmail connectivity. `concurrent.futures` enables multi threaded email processing. `hashlib` computes attachment checksums for VirusTotal lookups. `ipaddress` validates extracted IPs for IOC export. `json` and `csv` handle structured data export in multiple formats.
+| Package | Purpose |
+|---|---|
+| `nltk`, `pyspellchecker` | Natural language processing, typo detection |
+| `BeautifulSoup4` | HTML email body parsing, URL extraction |
+| `tldextract` | Domain name normalization |
+| `tabulate` | Terminal output table formatting |
+| `fpdf` | PDF report generation |
+| `python-whois` | Domain registration age verification |
+| `imaplib`, `smtplib` | Gmail IMAP and SMTP connectivity |
+| `concurrent.futures` | Multi threaded email processing |
+| `hashlib` | Attachment checksum computation |
+| `ipaddress` | IP validation for IOC export |
+| `json`, `csv` | Structured data export |
 
 ---
 
@@ -186,8 +344,6 @@ dedsec-eta
 
 ## Supported Platforms
 
-This tool has been tested and verified on the following Linux distributions:
-
 *   Kali Linux
 *   Parrot OS
 *   Ubuntu
@@ -198,14 +354,13 @@ This tool has been tested and verified on the following Linux distributions:
 
 This project demonstrates several competencies directly applicable to a SOC Analyst role:
 
-*   **Threat Detection Engineering**: Designing and implementing multi layered detection logic that combines signature based rules, header authentication checks, behavioral heuristics, and external threat intelligence feeds.
-*   **Email Security Analysis**: Understanding the full anatomy of phishing emails including SPF/DKIM/DMARC authentication, Reply-To and Return-Path spoofing, display name impersonation, social engineering language patterns, URL obfuscation techniques, and malicious attachment characteristics.
-*   **Malware Triage**: Computing cryptographic hashes for suspicious attachments and cross referencing them against VirusTotal to determine multi vendor detection ratios — a core Tier 1 SOC workflow.
-*   **Threat Intelligence**: Mapping detections to MITRE ATT&CK technique IDs and exporting IOCs in STIX 2.1 and MISP formats. This demonstrates familiarity with the frameworks and data formats used by threat intel teams and ISACs.
-*   **Automation and Scripting**: Building tools that reduce manual triage effort through automated ingestion, analysis, structured reporting, and IOC extraction.
-*   **Incident Documentation**: Generating professional PDF reports, structured JSON exports, and multi format IOC extracts suitable for case management, stakeholder communication, and audit trails.
-*   **Security Operations Mindset**: Prioritizing actionable output, minimizing false positives through whitelisting, presenting scan summary dashboards with aggregate metrics, and delivering findings in formats that support rapid decision making during incident response.
-*   **Adversary Technique Awareness**: Recognizing real world attacker methodologies such as typosquatting, tunneling services for C2 or phishing infrastructure, newly registered domains, and social engineering language patterns — all mapped to the MITRE ATT&CK framework.
+*   **Threat Detection Engineering** — Designing multi layered detection logic combining signature based rules, header authentication checks, behavioral heuristics, and external threat intelligence feeds.
+*   **Email Security Analysis** — Full understanding of phishing anatomy including SPF/DKIM/DMARC authentication, Reply-To and Return-Path spoofing, display name impersonation, social engineering patterns, URL obfuscation, and malicious attachment characteristics.
+*   **Malware Triage** — Computing cryptographic hashes for suspicious attachments and cross referencing against VirusTotal for multi vendor detection ratios.
+*   **Threat Intelligence** — Mapping detections to MITRE ATT&CK technique IDs and exporting IOCs in STIX 2.1 and MISP formats for sharing with ISACs and threat intel platforms.
+*   **Automation and Scripting** — Reducing manual triage effort through automated ingestion, analysis, structured reporting, and IOC extraction.
+*   **Incident Documentation** — Generating professional PDF reports, structured JSON exports, and multi format IOC extracts for case management and audit trails.
+*   **Security Operations Mindset** — Prioritizing actionable output, minimizing false positives through whitelisting, and presenting scan summary dashboards with aggregate metrics.
 
 ---
 

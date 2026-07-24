@@ -309,6 +309,14 @@ To run:
 ./dedsec-eta
 ```
 
+### HOW TO GET YOUR GMAIL KEY
+   1. goto this link: https://myaccount.google.com/u/0/apppasswords
+
+<p align="center">
+<img src="https://i.stack.imgur.com/Xe8Jt.gif", width="800", height="800">
+</p>
+   2. Then copy your email and app password, and provide them to the tool.
+   
 ---
 
 ## Supported Platforms

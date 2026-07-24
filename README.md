@@ -291,7 +291,7 @@ A credential harvesting email impersonating Gmail. SPF, DKIM, DMARC fails, a Tun
 ```bash
 git clone https://github.com/0xbitx/DEDSEC_ETA.git
 cd DEDSEC_ETA
-pip3 install requests tldextract nltk beautifulsoup4 tabulate pyspellchecker idna fpdf python-whois
+pip3 install -r requirements.txt
 chmod +x dedsec-eta
 ```
 
@@ -307,13 +307,6 @@ To run:
 
 ```bash
 ./dedsec-eta
-```
-
-Alternatively, install via the Debian package:
-
-```bash
-sudo apt install ./dedsec-eta.deb
-dedsec-eta
 ```
 
 ---

@@ -1,0 +1,9 @@
+requests
+tldextract
+nltk
+beautifulsoup4
+tabulate
+pyspellchecker
+idna
+fpdf
+python-whois
